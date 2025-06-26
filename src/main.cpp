@@ -1,99 +1,93 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#pragma warning(disable:4996)
-struct address {
-    char mac[18];
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+struct Address {
+    std::string mac;
     int quantity;
 };
-struct address_list {
-    address* data;
-    size_t size;
+
+class AddressList {
+    std::vector<Address> data;
+
+public:
+    void AddAddress(const std::string& addr) {
+        std::string newAddress = addr.substr(3, 17);
+
+        auto it = std::find_if(data.begin(), data.end(), [&](const Address& a) { return a.mac == newAddress; });
+
+        if (it != data.end()) {
+            it->quantity++;
+        }
+        else {
+            data.push_back({ newAddress, 1 });
+        }
+    }
+
+    void ProcessLine(const std::string& line) {
+        size_t ra_pos = line.find("RA=");
+        size_t ta_pos = line.find("TA=");
+        size_t sa_pos = line.find("SA=");
+        size_t bssid_pos = line.find("BSSID=");
+
+        if (bssid_pos != std::string::npos && line[bssid_pos - 1] != '/') {
+            bssid_pos = std::string::npos;
+        }
+
+        if (bssid_pos != std::string::npos) {
+            AddAddress(line.substr(bssid_pos+3));
+        }
+        if (ra_pos != std::string::npos) {
+            AddAddress(line.substr(ra_pos));
+        }
+        if (ta_pos != std::string::npos) {
+            AddAddress(line.substr(ta_pos));
+        }
+        if (sa_pos != std::string::npos) {
+            AddAddress(line.substr(sa_pos));
+        }
+    }
+
+    void PrintAddresses() {
+        std::cout << "Results:\nAddress    Quantity\n";
+
+        std::sort(data.begin(), data.end(), [](const Address& a, const Address& b) {
+                return a.quantity > b.quantity;
+        });
+
+        for (const auto& entry : data) {
+            std::cout << entry.mac << " " << entry.quantity << "\n";
+        }
+        std::cout << "\n";
+    }
 };
-void AddAddress(address_list* list, const char* addr) {
-    char newaddress[18] = { 0 };
-    strncpy(newaddress, addr + 3, 17);
-    newaddress[17] = '\0';
-    int found = 0;
-    for (int i = 0;i < list->size;i++) {
-        if (strcmp(newaddress, list->data[i].mac) == 0) {
-            list->data[i].quantity++;
-            found = 1;
+
+int main() {
+    AddressList list;
+    std::string filename;
+
+    while (true) {
+        std::cout << "Enter file location: ";
+        std::getline(std::cin, filename);
+
+        std::ifstream file(filename);
+        if (file) {
+            std::cout << "File found. Started processing...\n";
+            std::string line;
+
+            while (std::getline(file, line)) {
+                list.ProcessLine(line);
+            }
+
+            std::cout << "Finished Processing\n\n";
+            list.PrintAddresses();
             break;
         }
-    }
-    if (found == 0) {
-        list->data = (address*)realloc(list->data, sizeof(address) * (list->size + 1));
-        strcpy(list->data[list->size].mac, newaddress);
-        list->data[list->size].quantity = 1;
-        list->size++;
-    }
-}
-void ProcessLine(char* line, address_list* list) {
 
-    char* RA_pos = strstr(line, "RA=");
-    char* TA_pos = strstr(line, "TA=");
-    char* SA_pos = strstr(line, "SA=");
-    char* BSSID_pos = strstr(line, "BSSID=");
-    if (BSSID_pos != NULL) {
-        if ((BSSID_pos - 1)[0] != '/') {
-            BSSID_pos = NULL;
-        }
+        std::cout << "File does not exist. Try again.\n";
     }
-    if (BSSID_pos != NULL) {
-        AddAddress(list, BSSID_pos + 3);
-    }
-    if (RA_pos != NULL) {
-        AddAddress(list, RA_pos);
-    }
-    if (TA_pos != NULL) {
-        AddAddress(list, TA_pos);
-    }
-    if (SA_pos != NULL) {
-        AddAddress(list, SA_pos);
-    }
-}
-void PrintAdresses(address_list* list) {
-    printf("Results:\nAddress           Quantity\n");
-    int maxquantity = 0;
-    for (int i = 0;i < list->size;i++) {
-        if (list->data[i].quantity > maxquantity) {
-            maxquantity = list->data[i].quantity;
-        }
-    }
-    for (int i = maxquantity;i > 0;i--) {
-        for (int j = 0;j < list->size;j++) {
-            if (list->data[j].quantity == i) {
-                printf("%s %d\n", list->data[j].mac, list->data[j].quantity);
-            }
-        }
-    }
-    printf("\n");
-}
-int main() {
-    char filename[100];
-    char line[1500];
-    printf("Enter file location: ");
-entername:
-    scanf("%s", filename);
-    address_list list;
-    list.data = NULL;
-    list.size = 0;
 
-    FILE* fp = fopen(filename, "r");
-    if (fp == NULL) {
-        printf("File does not exist. Try again: ");
-        goto entername;
-    }
-    else {
-        printf("File found. Started processing...\n");
-    }
-    if (fp) {
-        while ((fgets(line, 1000, fp)) != NULL) {
-            ProcessLine(line, &list);
-        }
-    }
-    printf("Finished Processing\n\n");
-    PrintAdresses(&list);
     return 0;
 }
