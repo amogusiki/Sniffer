@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <gtest/gtest.h>
 #pragma warning(disable:4996)
 struct address {
     char mac[18];
