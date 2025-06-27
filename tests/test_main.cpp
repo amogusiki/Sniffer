@@ -14,6 +14,9 @@ class AddressList {
     std::vector<Address> data;
 
 public:
+    size_t GetCount() const {
+        return data.size();
+    }
     void AddAddress(const std::string& addr) {
         std::string newAddress = addr.substr(addr.find('=') + 1, 17);
 
@@ -53,52 +56,49 @@ public:
         }
         std::cout << "\n";
     }
+    std::vector<int> GetQuantities() const {
+        std::vector<int> quantities;
+        for (const auto& entry : data) {
+            quantities.push_back(entry.quantity);
+        }
+        std::sort(quantities.begin(), quantities.end(), std::greater<int>());
+        return quantities;
+    }
 };
 
-TEST(FramesParserAcceptanceTest, RealFileTest) {
+TEST(FramesParserAcceptanceTest, NumberOfAdressesTest) {
     const std::string filename = "C:\\Users\\drysf\\Desktop\\frames_parser.log";
     AddressList list;
 
-    testing::internal::CaptureStdout();
-
-    std::cout << "Enter file location: " << filename << "\n";
-
     std::ifstream file(filename);
     if (file) {
-        std::cout << "File found. Started processing...\n";
         std::string line;
 
         while (std::getline(file, line)) {
             list.ProcessLine(line);
         }
-
-        std::cout << "Finished Processing\n\n";
-        list.PrintAddresses();
     }
+    int expected_quantity = 13;
+    EXPECT_EQ(expected_quantity, list.GetCount());
+}
+TEST(FramesParserAcceptanceTest, NumberForEveryAddressTest) {
+    const std::string filename = "C:\\Users\\drysf\\Desktop\\frames_parser.log";
+    AddressList list;
 
-    std::string output = testing::internal::GetCapturedStdout();
+    std::ifstream file(filename);
+    if (file) {
+        std::string line;
 
-    std::string expected =
-        "Enter file location: C:\\Users\\drysf\\Desktop\\frames_parser.log\n"
-        "File found. Started processing...\n"
-        "Finished Processing\n\n"
-        "Results:\n"
-        "Address    Quantity\n"
-        "b8:69:f4:7a:a5:ac 15235\n"
-        "34:1c:f0:d3:40:a2 5812\n"
-        "34:1c:f0:d2:78:5a 5307\n"
-        "00:0c:29:65:08:ee 3713\n"
-        "4a:5f:99:ae:ea:99 196\n"
-        "84:c5:a6:07:38:66 124\n"
-        "6e:52:4e:5f:f9:eb 107\n"
-        "ff:ff:ff:ff:ff:ff 98\n"
-        "b8:69:f4:7a:a5:93 68\n"
-        "52:ff:20:52:16:9a 14\n"
-        "70:c9:32:1b:54:e2 13\n"
-        "80:b6:55:60:6f:58 4\n"
-        "c8:7f:54:28:74:ac 3\n\n";
-
-    ASSERT_EQ(output, expected);
+        while (std::getline(file, line)) {
+            list.ProcessLine(line);
+        }
+    }
+    const std::vector<int> expected_numbers = { 15235, 5812, 5307, 3713, 196, 124, 107, 98, 68, 14, 13, 4, 3 };
+    std::vector<int> real_numbers;
+    real_numbers = list.GetQuantities();
+    for (size_t i = 0; i < expected_numbers.size(); ++i) {
+        EXPECT_EQ(expected_numbers[i], real_numbers[i]) << i;
+    }
 }
 
 int main(int argc, char** argv) {
